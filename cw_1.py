@@ -6,8 +6,12 @@ import autograd.numpy as anp
 
 # https://staff.elka.pw.edu.pl/~knalecz/WSI/cw1.html
 # https://staff.elka.pw.edu.pl/~knalecz/
+#Do poprawy skala logarytmiczna przy numerze iteracji
+#Do poprawy więcej wykresów oddzielne przedstawienie learning rate i start poit
+#Do poprawy zmniejszyć kropki na wykresie + parametr alpha (przeźroczystośc dla kropek)
 
 def gradient_descent(f, grad_f, x0, learning_rate, max_iter=1000, tol=1e-6):
+    #tutaj można uogólnić
     x = anp.array(x0, dtype=anp.float64)
     history = []
     iterations = []
