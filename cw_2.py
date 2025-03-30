@@ -18,7 +18,19 @@ coords = np.array([cities[city] for city in city_names])
 num_cities = len(coords)
 
 # Funkcja obliczająca macierz odległości euklidesowych między wszystkimi miastami
+# To działa w taki sposób że: Dodaje nową oś pośrodku. Jeśli coords ma kształt (n, d), to po tej operacji ma (n, 1, d)
+# – czyli każdy punkt staje się osobnym blokiem do porównania i to samo, ale nowa oś jest na początku – wynik ma kształt (1, n, d)
 def compute_distance_matrix(coords):
+    '''
+    Oblicza macierz odległości euklidesowych między wszystkimi punktami.
+
+    Parametry:
+    coords (ndarray): Tablica NumPy o wymiarach (n, d), gdzie n to liczba punktów,
+                      a d to liczba wymiarów (np. 2 dla współrzędnych 2D).
+
+    Zwraca:
+    ndarray: Macierz (n, n), w której element [i][j] to odległość euklidesowa między punktem i i punktem j.
+    '''
     # Różnica między każdą parą punktów, następnie norma euklidesowa
     dist_matrix = np.sqrt(((coords[:, np.newaxis, :] - coords[np.newaxis, :, :]) ** 2).sum(axis=2))
     return dist_matrix
@@ -55,26 +67,84 @@ distance_matrix = dist_matrix
 
 # Funkcja obliczająca długość trasy (z powrotem do miasta startowego)
 def path_length(path, distance_matrix):
+    '''
+        Oblicza łączną długość ścieżki na podstawie podanej kolejności miast
+        oraz macierzy odległości.
+
+        Parametry:
+        path (list or ndarray): Lista indeksów miast w kolejności odwiedzania (np. [0, 2, 1, 3]).
+        distance_matrix (ndarray): Kwadratowa macierz odległości, gdzie element [i][j] to odległość z miasta i do j.
+
+        Zwraca:
+        float: Całkowita długość ścieżki, w tym powrót do punktu początkowego.
+        '''
     total = sum(distance_matrix[path[i], path[(i + 1) % num_cities]] for i in range(num_cities))
     return total
 
 # Funkcja przystosowania: odwrotność długości trasy (im krótsza, tym lepsza)
 def fitness(path):
+    '''
+    Oblicza wartość funkcji dopasowania (fitness) dla danej ścieżki.
+    Im krótsza trasa, tym wyższa wartość funkcji dopasowania.
+
+    Parametry:
+    path (list or ndarray): Lista indeksów miast w kolejności odwiedzania.
+
+    Zwraca:
+    float: Wartość funkcji dopasowania, zdefiniowana jako odwrotność długości trasy (1 / długość).
+    '''
     #print(1.0 / path_length(path, distance_matrix))
     return 1.0 / path_length(path, distance_matrix)
 
 # Tworzy początkową populację losowych tras (permutacji indeksów miast)
 def init_population(pop_size):
+    '''
+        Inicjalizuje populację permutacji miast (ścieżek) dla algorytmu genetycznego.
+
+        Parametry:
+        pop_size (int): Liczba osobników w populacji (czyli liczba różnych permutacji miast).
+
+        Zwraca:
+        ndarray: Tablica NumPy o wymiarach (pop_size, num_cities), gdzie każdy wiersz to losowa permutacja miast.
+        '''
     return np.array([np.random.permutation(num_cities) for _ in range(pop_size)])
 
 # Selekcja ruletkowa: wybiera osobniki proporcjonalnie do przystosowania
 def roulette_selection(population, fitnesses):
+    '''
+    Przeprowadza selekcję ruletkową (proporcjonalną) na podstawie wartości dopasowania (fitness).
+
+    Każdy osobnik ma szansę bycia wybranym proporcjonalną do swojej wartości fitness.
+    W wyniku powstaje nowa populacja tej samej wielkości.
+
+    Parametry:
+    population (ndarray): Tablica populacji, gdzie każdy wiersz to jeden osobnik (ścieżka).
+    fitnesses (ndarray): Tablica wartości fitness odpowiadających każdemu osobnikowi.
+
+    Zwraca:
+    ndarray: Nowa populacja (tej samej wielkości), wybrana na podstawie selekcji ruletkowej.
+    '''
     probs = fitnesses / fitnesses.sum()  # Prawdopodobieństwa wyboru
     indices = np.random.choice(len(population), size=len(population), p=probs)
     return population[indices]
 
 # Selekcja turniejowa: wybiera najlepszych z losowych grup
-def tournament_selection(population, fitnesses, tournament_size=3):
+def tournament_selection(population, fitnesses, tournament_size=4):
+    '''
+    Przeprowadza selekcję turniejową na podstawie wartości fitness.
+
+    W każdej iteracji losowana jest grupa `tournament_size` osobników (bez powtórzeń),
+    z której wybierany jest ten z najwyższym fitness. Proces powtarzany jest tyle razy,
+    ile wynosi liczebność populacji, aby utworzyć nową populację tej samej wielkości.
+
+    Parametry:
+    population (ndarray): Tablica populacji, gdzie każdy wiersz to jeden osobnik (ścieżka).
+    fitnesses (ndarray): Tablica wartości fitness odpowiadających każdemu osobnikowi.
+    tournament_size (int): Liczba osobników biorących udział w jednym turnieju (domyślnie 4).
+
+    Zwraca:
+    ndarray: Nowa populacja wybrana metodą selekcji turniejowej.
+    '''
     selected = []
     pop_size = len(population)
     for _ in range(pop_size):
@@ -85,6 +155,22 @@ def tournament_selection(population, fitnesses, tournament_size=3):
 
 # Jednopunktowe krzyżowanie z naprawą duplikatów przez wymianę między dziećmi
 def custom_crossover_exchange_duplicates(parent1, parent2):
+    '''
+    Wykonuje krzyżowanie jednopunktowe dwóch permutacji (rodziców) i usuwa ewentualne duplikaty,
+    aby uzyskać poprawne dzieci (permutacje bez powtórzeń).
+
+    Proces:
+    - Losowany jest punkt cięcia (pozycja w chromosomie).
+    - Tworzone są dwa dzieci poprzez połączenie fragmentów rodziców.
+    - Następnie naprawiane są ewentualne duplikaty poprzez wymianę genów między dziećmi.
+
+    Parametry:
+    parent1 (ndarray): Pierwszy rodzic (permutacja miast).
+    parent2 (ndarray): Drugi rodzic (permutacja miast).
+
+    Zwraca:
+    tuple: Dwie poprawne permutacje (ndarray), będące potomkami parent1 i parent2.
+    '''
     size = len(parent1)
     cut = np.random.randint(1, size - 1)  # Losowy punkt cięcia (nie na skraju)
 
@@ -94,6 +180,20 @@ def custom_crossover_exchange_duplicates(parent1, parent2):
 
     # Naprawa duplikatów przez wymianę pomiędzy dziećmi
     def fix_duplicates(c1, c2):
+        '''
+                Naprawia duplikaty w dwóch chromosomach (permutacjach) poprzez wymianę genów między nimi.
+
+                Proces:
+                - Wyszukiwanie duplikatów (czyli genów powtarzających się) w obu dzieciach.
+                - Wymiana duplikatów pomiędzy dziećmi tak, aby uzyskać poprawne permutacje.
+
+                Parametry:
+                c1 (ndarray): Pierwsze dziecko z potencjalnymi duplikatami.
+                c2 (ndarray): Drugie dziecko z potencjalnymi duplikatami.
+
+                Zwraca:
+                tuple: Dwie permutacje po naprawie, bez powtórzonych elementów.
+        '''
         seen1 = set()
         seen2 = set()
         duplicates1 = []
@@ -122,6 +222,19 @@ def custom_crossover_exchange_duplicates(parent1, parent2):
 
 # Mutacja – z ustalonym prawdopodobieństwem zamienia miejscami dwa miasta w trasie
 def mutate(individual, mutation_rate):
+    '''
+    Przeprowadza mutację permutacji (osobnika) z określonym prawdopodobieństwem.
+
+    Mutacja polega na zamianie miejscami dwóch losowo wybranych genów (miast) w permutacji.
+    Jest stosowana z prawdopodobieństwem określonym przez mutation_rate.
+
+    Parametry:
+    individual (ndarray): Permutacja reprezentująca jednego osobnika (trasę).
+    mutation_rate (float): Prawdopodobieństwo wystąpienia mutacji (wartość z zakresu [0, 1]).
+
+    Zwraca:
+    ndarray: Zmutowany (lub niezmieniony) osobnik.
+    '''
     if np.random.rand() < mutation_rate:
         i, j = np.random.choice(num_cities, size=2, replace=False)
         individual[i], individual[j] = individual[j], individual[i]
@@ -129,19 +242,67 @@ def mutate(individual, mutation_rate):
 
 # Główna funkcja realizująca algorytm genetyczny
 def genetic_algorithm(pop_size=100, generations=500, mutation_rate=0.05, selection_method='roulette'):
+    '''
+    Wykonuje algorytm genetyczny w celu rozwiązania problemu komiwojażera (TSP – Travelling Salesman Problem).
+
+    Algorytm ewoluuje populację permutacji miast w wielu pokoleniach, starając się znaleźć najkrótszą możliwą trasę
+    odwiedzającą każde miasto dokładnie raz i wracającą do punktu startowego.
+
+    Etapy działania:
+    1. Inicjalizacja populacji — tworzona jest początkowa populacja losowych permutacji miast.
+    2. Ewaluacja — każdemu osobnikowi przypisywana jest wartość fitness (odwrotność długości trasy).
+    3. Selekcja — wybór osobników do rozmnażania (ruletka lub turniej).
+    4. Krzyżowanie — tworzenie potomstwa poprzez krzyżowanie jednopunktowe z naprawą duplikatów.
+    5. Mutacja — z losowym prawdopodobieństwem zamieniane są miejscami dwa miasta w trasie.
+    6. Sukcesja — nowa populacja zastępuje starą.
+    7. Powtórzenie — powyższe kroki są wykonywane przez zadaną liczbę pokoleń.
+
+    Parametry:
+    pop_size (int): Liczba osobników (tras) w populacji. Domyślnie 100.
+    generations (int): Liczba pokoleń, przez które będzie działać algorytm. Domyślnie 500.
+    mutation_rate (float): Prawdopodobieństwo mutacji jednego osobnika (0.0 – 1.0). Domyślnie 0.05.
+    selection_method (str): Metoda selekcji do rozmnażania. Dozwolone: 'roulette' (selekcja ruletkowa),
+                            'tournament' (selekcja turniejowa). Domyślnie 'roulette'.
+
+    Wyjątki:
+    ValueError: Gdy `selection_method` nie jest jedną z obsługiwanych wartości ('roulette' lub 'tournament').
+
+    Zwraca:
+    tuple:
+        - best (ndarray): Najlepsza znaleziona permutacja miast (czyli trasa o najwyższym dopasowaniu / najkrótsza).
+        - best_distance (float): Długość tej trasy (czyli suma odległości między kolejnymi miastami w trasie, z powrotem na początek).
+
+    Uwagi:
+    - Funkcja zakłada, że globalna zmienna `distance_matrix` jest wcześniej zdefiniowana i zawiera macierz odległości
+      między miastami, zgodną z permutacjami osobników.
+    - Funkcja korzysta z wielu pomocniczych funkcji, m.in.:
+        - `init_population`
+        - `fitness`
+        - `roulette_selection` i `tournament_selection`
+        - `custom_crossover_exchange_duplicates`
+        - `mutate`
+        - `path_length`
+    - Liczba miast (num_cities) musi być zgodna z długością permutacji zwracanych przez `init_population`.
+    '''
+
     population = init_population(pop_size)
     best = None
+    #best_fit na początku minus nieskończoność
     best_fit = -np.inf
 
     for gen in range(generations):
+        #pętla pokoleniowa
         fitnesses = np.array([fitness(ind) for ind in population])
+        #Dla każdego osobnika w populacji liczymy jego wartość dopasowania (fitness)
         new_population = []
+        #pusta lista nowej populacji z poprzedniej populacji
 
         # Zapamiętaj najlepszego osobnika
         gen_best_idx = np.argmax(fitnesses)
         if fitnesses[gen_best_idx] > best_fit:
             best_fit = fitnesses[gen_best_idx]
             best = population[gen_best_idx]
+            #Jeśli jego fitness jest lepszy niż dotychczasowy best_fit, to: aktualizujemy best_fit i zapamiętujemy jego trasę jako best
 
         # Wybór selekcji
         if selection_method == 'roulette':
@@ -157,6 +318,11 @@ def genetic_algorithm(pop_size=100, generations=500, mutation_rate=0.05, selecti
             c1 = mutate(c1, mutation_rate)
             c2 = mutate(c2, mutation_rate)
             new_population.extend([c1, c2])
+            #Dla każdej pary rodziców (p1 i p2):
+                #Tworzymy potomków (c1, c2) przez krzyżowanie z naprawą duplikatów (bo to permutacje).
+                # Mutujemy każdego z potomków z prawdopodobieństwem mutation_rate.
+                # Dodajemy ich do nowej populacji.
+            #Uwaga: (i + 1) % pop_size zapewnia, że jeśli i jest ostatnim indeksem, to parujemy go z pierwszym (żeby zawsze mieć parę).
 
         population = np.array(new_population)
 
