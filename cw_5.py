@@ -24,7 +24,7 @@ class Perceptron2Layers:
         self.bias_to_out = np.zeros((1, 1))
 
     def forward(self, X):
-        # @ - możenie macierzowe
+        # @ - mnożenie macierzowe
         self.results_from_hidden = X @ self.weights_to_hidden + self.bias_to_hidden
         self.after_sigmoid = sigmoid(self.results_from_hidden)
         self.outer_results = self.after_sigmoid @ self.weights_to_out + self.bias_to_out
@@ -141,16 +141,21 @@ def test_learning_rate(x, y):
     plt.show()
 
 
-# 2. Test hidden_neurons - działanie dla różnej liczby neuronów w ukrytej warstwie (5000 epok, 0.1 learning_rate)
+# 3. Test hidden_neurons - działanie dla różnej liczby neuronów w ukrytej warstwie (5000 epok, 0.1 learning_rate)
 # (uśrednianie z 25 powtórzeń)
 def test_hidden_neurons(x, y):
     plt.plot(x, y, label="Rzeczywista funkcja Laplace'a")
     plt.xlabel('x')
     plt.ylabel('y')
+    # Ustalone eksperymentalnie parametry wejściowe (epochs, leraning_rate)
     epochs = 5000
-    learning_rate = 0.2
-    hidden_neurons_amount = [2, 4, 6, 8, 10, 15, 20, 25, 50]
+    learning_rate = 0.1
+
+    hidden_neurons_amount = [1, 2, 3, 4, 6, 8, 10, 15, 20, 25, 30, 40, 50, 60]
     results_rate = []
+    mse_array = []
+    mae_array = []
+    time_array = []
     REPETITIONS = 25
     for hidden_neurons in hidden_neurons_amount:
         mse_sum = 0
@@ -175,7 +180,10 @@ def test_hidden_neurons(x, y):
 
         mse_final = np.round(mse_sum / REPETITIONS, 4)
         mae_final = np.round(mae_sum / REPETITIONS, 4)
+        mse_array.append(mse_final)
+        mae_array.append(mae_final)
         time_final = np.round(time_elapsed_sum / REPETITIONS, 4)
+        time_array.append(time_final)
         results_rate.append((mse_final, mae_final))
         print(f"------ WYNIKI DLA hidden_neurons = {hidden_neurons}: avg_MSE = {mse_final} | avg_MAE = {mae_final} | avg_TIME = {time_final} s")
 
@@ -187,6 +195,28 @@ def test_hidden_neurons(x, y):
         plt.title(f"Odwzorowanie funkcji dla różnej liczby neuronów w ukrytej warstwie")
 
     plt.show()
+
+    plt.xlabel('Liczba neuronów w ukrytej warstwie')
+    plt.ylabel('MSE')
+    plt.plot(hidden_neurons_amount, mse_array, label=f"Wykres błedu MSE od liczby neuronów w war. ukrytej", linestyle='--', marker='o', color='blue')
+    plt.legend()
+    plt.title(f"Wykres blędu MSE od liczby neuronów w ukrytej warstwie")
+    plt.show()
+
+    plt.xlabel('Liczba neuronów w ukrytej warstwie')
+    plt.ylabel('MAE')
+    plt.plot(hidden_neurons_amount, mae_array, label=f"Wykres błedu MAE od liczby neuronów w war. ukrytej", linestyle='--', marker='o', color='red')
+    plt.legend()
+    plt.title(f"Wykres blędu MAE od liczby neuronów w ukrytej warstwie")
+    plt.show()
+
+    plt.xlabel('Liczba neuronów w ukrytej warstwie')
+    plt.ylabel('AVG_TIME [s]')
+    plt.plot(hidden_neurons_amount, time_array, label=f"Wykres średniego czasu od liczby neuronów w war. ukrytej", linestyle='--', marker='o', color='green')
+    plt.legend()
+    plt.title(f"Wykres średniego czasu AVG_TIME od liczby neuronów w ukrytej warstwie")
+    plt.show()
+
 
 # ================= TESTOWANIE =================
 if __name__ == "__main__":
@@ -216,23 +246,9 @@ if __name__ == "__main__":
         while True:
             ans2 = input("Czy chcesz jeszcze raz wykonać jakiś test (t/n)? ")
             if ans2 == 't':
-                continue
+                break
             elif ans2 == 'n':
                 print("Kończenie programu...")
                 exit(-1)
             else:
                 print("Błędna wartość!")
-
-    #
-    # # Obliczanie błędów
-    # mse = np.mean((y - y_pred)**2)
-    # mae = np.mean(np.abs(y - y_pred))
-    #
-    # print(f"MSE: {mse:.6f}, MAE: {mae:.6f}")
-    #
-    # # Wykres
-    # plt.plot(x, y, label="Rzeczywista funkcja Laplace'a")
-    # plt.plot(x, y_pred, label="Sieć neuronowa", linestyle='dashed')
-    # plt.legend()
-    # plt.title(f"Ukrytych neuronów: {hidden_neurons}")
-    # plt.show()
