@@ -4,19 +4,85 @@ import time
 
 
 def laplace(x, mu=0, b=1):
+    """
+    Oblicza wartość funkcji gęstości rozkładu Laplace'a.
+
+    Parametry:
+        x (float): Wartość zmiennej losowej.
+        mu (float, opcjonalnie): Wartość oczekiwana (średnia) rozkładu. Domyślnie 0.
+        b (float, opcjonalnie): Parametr skali (rozrzut) rozkładu. Domyślnie 1.
+
+    Zwraca:
+        float: Wartość funkcji gęstości dla podanej wartości x.
+    """
     return (1 / (2 * b)) * np.exp(-np.abs(x - mu) / b)
 
 
 def sigmoid(x):
+    """
+    Oblicza wartość funkcji sigmoid.
+
+    Parametry:
+        x (float lub ndarray): Wartość wejściowa lub tablica wartości.
+
+    Zwraca:
+        float lub ndarray: Wartość funkcji sigmoid dla podanego argumentu x.
+    """
     return 1 / (1 + np.exp(-x))
 
 
 def sigmoid_derivative(x):
+    """
+    Oblicza pochodną funkcji sigmoid.
+
+    Parametry:
+        x (float lub ndarray): Wartość wejściowa lub tablica wartości.
+
+    Zwraca:
+        float lub ndarray: Wartość pochodnej funkcji sigmoid dla podanego argumentu x.
+    """
     return sigmoid(x) * (1 - sigmoid(x))
 
 
 class Perceptron2Layers:
+    """
+    Dwuwarstwowy perceptron do uczenia maszynowego.
+
+    Atrybuty:
+        learning_rate (float): Współczynnik uczenia.
+        weights_to_hidden (ndarray): Wagi połączeń wejściowych do warstwy ukrytej.
+        bias_to_hidden (ndarray): Bias warstwy ukrytej.
+        weights_to_out (ndarray): Wagi połączeń warstwy ukrytej do wyjściowej.
+        bias_to_out (ndarray): Bias warstwy wyjściowej.
+
+    Metody:
+        __init__(input_size, hidden_size, learning_rate):
+            Inicjalizuje perceptron z losowymi wagami i zerowym biasem.
+
+        forward(X):
+            Przeprowadza propagację w przód przez sieć neuronową.
+            Zwraca wynik wyjściowy.
+
+        backward(X, y, output):
+            Przeprowadza propagację wsteczną i aktualizuje wagi oraz biasy
+            na podstawie błędu.
+
+        train(X, y, epochs):
+            Trenuje perceptron przez zadany licznik epok.
+
+        predict(X):
+            Przewiduje wyjście na podstawie danych wejściowych.
+    """
+
     def __init__(self, input_size, hidden_size, learning_rate):
+        """
+        Inicjalizuje perceptron dwuwarstwowy.
+
+        Parametry:
+            input_size (int): Liczba neuronów na warstwie wejściowej.
+            hidden_size (int): Liczba neuronów na warstwie ukrytej.
+            learning_rate (float): Współczynnik uczenia.
+        """
         self.learning_rate = learning_rate
         self.weights_to_hidden = np.random.randn(input_size, hidden_size)
         self.bias_to_hidden = np.zeros((1, hidden_size))
@@ -24,13 +90,29 @@ class Perceptron2Layers:
         self.bias_to_out = np.zeros((1, 1))
 
     def forward(self, X):
-        # @ - mnożenie macierzowe
+        """
+        Wykonuje propagację w przód.
+
+        Parametry:
+            X (ndarray): Dane wejściowe.
+
+        Zwraca:
+            ndarray: Wynik działania sieci neuronowej.
+        """
         self.results_from_hidden = X @ self.weights_to_hidden + self.bias_to_hidden
         self.after_sigmoid = sigmoid(self.results_from_hidden)
         self.outer_results = self.after_sigmoid @ self.weights_to_out + self.bias_to_out
         return self.outer_results
 
     def backward(self, X, y, output):
+        """
+        Wykonuje propagację wsteczną i aktualizuje wagi.
+
+        Parametry:
+            X (ndarray): Dane wejściowe.
+            y (ndarray): Prawdziwe wartości wyjściowe.
+            output (ndarray): Wynik działania sieci.
+        """
         samples = X.shape[0]
         d_outer_results_2 = (output - y)
         d_weights_to_out_2 = self.after_sigmoid.T @ d_outer_results_2 / samples
@@ -40,23 +122,59 @@ class Perceptron2Layers:
         d_weights_to_hidden_1 = X.T @ d_results_from_hidden_1 / samples
         d_bias_to_hidden_1 = np.sum(d_results_from_hidden_1, axis=0, keepdims=True) / samples
 
-        # Aktualizacja wag metodą gradientową (spadek)
+        # Aktualizacja wag metodą gradientową
         self.weights_to_hidden -= self.learning_rate * d_weights_to_hidden_1
         self.bias_to_hidden -= self.learning_rate * d_bias_to_hidden_1
         self.weights_to_out -= self.learning_rate * d_weights_to_out_2
         self.bias_to_out -= self.learning_rate * d_bias_to_out_2
 
     def train(self, X, y, epochs):
+        """
+        Trenuje perceptron przez określoną liczbę epok.
+
+        Parametry:
+            X (ndarray): Dane wejściowe.
+            y (ndarray): Prawdziwe wartości wyjściowe.
+            epochs (int): Liczba epok treningowych.
+        """
         for epoch in range(epochs):
             output = self.forward(X)
             self.backward(X, y, output)
 
     def predict(self, X):
+        """
+        Przewiduje wyjście na podstawie danych wejściowych.
+
+        Parametry:
+            X (ndarray): Dane wejściowe.
+
+        Zwraca:
+            ndarray: Przewidywane wyniki.
+        """
         return self.forward(X)
+
 
 
 # 1. Test ilości epok (iteracji) - działanie dla 10 ukrytych neuronów (uśrednianie z 25 powtórzeń)
 def test_epochs(x, y):
+    """
+    Testuje wpływ liczby epok na dokładność modelu perceptronowego.
+
+    Funkcja wykonuje eksperyment polegający na trenowaniu perceptronu
+    dwuwarstwowego dla różnych liczb epok i oblicza średnie wartości MSE, MAE
+    oraz czas treningu. Wyniki są uśredniane z 25 powtórzeń. Dodatkowo
+    funkcja generuje wykres rzeczywistej funkcji Laplace'a oraz wyników
+    sieci neuronowej dla różnych liczby epok.
+
+    Parametry:
+        x (ndarray): Dane wejściowe (np. wartości funkcji Laplace'a).
+        y (ndarray): Rzeczywiste wartości funkcji Laplace'a.
+
+    Wynik:
+        Wykres porównujący rzeczywistą funkcję Laplace'a i wyniki predykcji
+        dla różnych liczby epok. Wypisane wartości MSE, MAE i czas treningu
+        dla każdej liczby epok.
+    """
     plt.plot(x, y, label="Rzeczywista funkcja Laplace'a")
     plt.xlabel('x')
     plt.ylabel('y')
@@ -101,8 +219,27 @@ def test_epochs(x, y):
 
     plt.show()
 
+
 # 2. Test learning rate - działanie dla 10 ukrytych neuronów dla liczby iteracji (uśrednianie z 25 powtórzeń)
 def test_learning_rate(x, y):
+    """
+    Testuje wpływ współczynnika uczenia na dokładność modelu perceptronowego.
+
+    Funkcja przeprowadza eksperyment, w którym trenuje perceptron dwuwarstwowy
+    dla różnych wartości współczynnika uczenia (learning rate) oraz oblicza średnie
+    wartości MSE i MAE. Wyniki są uśredniane z 25 powtórzeń. Dodatkowo funkcja
+    generuje wykres rzeczywistej funkcji Laplace'a oraz wyników sieci neuronowej
+    dla różnych wartości learning rate.
+
+    Parametry:
+        x (ndarray): Dane wejściowe (np. wartości funkcji Laplace'a).
+        y (ndarray): Rzeczywiste wartości funkcji Laplace'a.
+
+    Wynik:
+        Wykres porównujący rzeczywistą funkcję Laplace'a i wyniki predykcji
+        dla różnych wartości learning rate. Wypisane wartości MSE i MAE
+        dla każdego współczynnika uczenia.
+    """
     plt.plot(x, y, label="Rzeczywista funkcja Laplace'a")
     plt.xlabel('x')
     plt.ylabel('y')
@@ -141,13 +278,36 @@ def test_learning_rate(x, y):
     plt.show()
 
 
+
 # 3. Test hidden_neurons - działanie dla różnej liczby neuronów w ukrytej warstwie (5000 epok, 0.1 learning_rate)
 # (uśrednianie z 25 powtórzeń)
 def test_hidden_neurons(x, y):
+    """
+    Testuje wpływ liczby neuronów w warstwie ukrytej na dokładność modelu perceptronowego.
+
+    Funkcja przeprowadza eksperyment, w którym trenuje perceptron dwuwarstwowy
+    dla różnych liczby neuronów w warstwie ukrytej oraz oblicza średnie wartości
+    MSE, MAE oraz czas treningu. Wyniki są uśredniane z 25 powtórzeń.
+    Dodatkowo funkcja generuje wykres rzeczywistej funkcji Laplace'a oraz wyników
+    sieci neuronowej dla różnych liczby neuronów w warstwie ukrytej.
+
+    Parametry:
+        x (ndarray): Dane wejściowe (np. wartości funkcji Laplace'a).
+        y (ndarray): Rzeczywiste wartości funkcji Laplace'a.
+
+    Wynik:
+        Wykresy:
+        - Porównanie rzeczywistej funkcji Laplace'a i wyników predykcji
+          dla różnych liczby neuronów w warstwie ukrytej.
+        - Wykres błędu MSE w zależności od liczby neuronów w warstwie ukrytej.
+        - Wykres błędu MAE w zależności od liczby neuronów w warstwie ukrytej.
+        - Wykres średniego czasu treningu w zależności od liczby neuronów.
+        Wypisane wartości MSE, MAE i czas treningu dla każdej liczby neuronów.
+    """
     plt.plot(x, y, label="Rzeczywista funkcja Laplace'a")
     plt.xlabel('x')
     plt.ylabel('y')
-    # Ustalone eksperymentalnie parametry wejściowe (epochs, leraning_rate)
+    # Ustalone eksperymentalnie parametry wejściowe (epochs, learning_rate)
     epochs = 5000
     learning_rate = 0.1
 
@@ -196,26 +356,30 @@ def test_hidden_neurons(x, y):
 
     plt.show()
 
+    # Wykres MSE
     plt.xlabel('Liczba neuronów w ukrytej warstwie')
     plt.ylabel('MSE')
-    plt.plot(hidden_neurons_amount, mse_array, label=f"Wykres błedu MSE od liczby neuronów w war. ukrytej", linestyle='--', marker='o', color='blue')
+    plt.plot(hidden_neurons_amount, mse_array, label="Błąd MSE", linestyle='--', marker='o', color='blue')
     plt.legend()
-    plt.title(f"Wykres blędu MSE od liczby neuronów w ukrytej warstwie")
+    plt.title("Błąd MSE w zależności od liczby neuronów w ukrytej warstwie")
     plt.show()
 
+    # Wykres MAE
     plt.xlabel('Liczba neuronów w ukrytej warstwie')
     plt.ylabel('MAE')
-    plt.plot(hidden_neurons_amount, mae_array, label=f"Wykres błedu MAE od liczby neuronów w war. ukrytej", linestyle='--', marker='o', color='red')
+    plt.plot(hidden_neurons_amount, mae_array, label="Błąd MAE", linestyle='--', marker='o', color='red')
     plt.legend()
-    plt.title(f"Wykres blędu MAE od liczby neuronów w ukrytej warstwie")
+    plt.title("Błąd MAE w zależności od liczby neuronów w ukrytej warstwie")
     plt.show()
 
+    # Wykres średniego czasu treningu
     plt.xlabel('Liczba neuronów w ukrytej warstwie')
     plt.ylabel('AVG_TIME [s]')
-    plt.plot(hidden_neurons_amount, time_array, label=f"Wykres średniego czasu od liczby neuronów w war. ukrytej", linestyle='--', marker='o', color='green')
+    plt.plot(hidden_neurons_amount, time_array, label="Średni czas treningu", linestyle='--', marker='o', color='green')
     plt.legend()
-    plt.title(f"Wykres średniego czasu AVG_TIME od liczby neuronów w ukrytej warstwie")
+    plt.title("Średni czas treningu w zależności od liczby neuronów w ukrytej warstwie")
     plt.show()
+
 
 
 # ================= TESTOWANIE =================
