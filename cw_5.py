@@ -416,3 +416,58 @@ if __name__ == "__main__":
                 exit(-1)
             else:
                 print("Błędna wartość!")
+
+
+#rysowanie sieci:
+# import matplotlib.pyplot as plt
+# import numpy as np
+#
+# def draw_neural_network_v3(input_size, hidden_size, output_size):
+#     """
+#     Rysuje diagram sieci neuronowej z jedną warstwą ukrytą i sigmoidą jako funkcją aktywacyjną.
+#     Neurony jako kółka, wyrównanie inputu i outputu na tej samej wysokości.
+#
+#     Parametry:
+#         input_size (int): Liczba neuronów wejściowych.
+#         hidden_size (int): Liczba neuronów w warstwie ukrytej.
+#         output_size (int): Liczba neuronów wyjściowych.
+#     """
+#     fig, ax = plt.subplots(figsize=(8, 8))
+#
+#     input_layer_y = np.array([0])  # Input na tej samej wysokości co output
+#     hidden_layer_y = np.linspace(-2, 2, hidden_size)
+#     output_layer_y = np.array([0])
+#
+#     for i, y in enumerate(input_layer_y):
+#         circle = plt.Circle((-1, y), 0.2, color='blue', ec='black', zorder=2)
+#         ax.add_artist(circle)
+#         ax.text(-1, y, f'Input', ha='center', va='center', fontsize=12, color='white')
+#
+#     for j, y in enumerate(hidden_layer_y):
+#         circle = plt.Circle((0, y), 0.2, color='orange', ec='black', zorder=2)
+#         ax.add_artist(circle)
+#         ax.text(0, y, f'Σ', ha='center', va='center', fontsize=18, fontweight='bold', color='white')
+#
+#     circle = plt.Circle((1, output_layer_y[0]), 0.2, color='green', ec='black', zorder=2)
+#     ax.add_artist(circle)
+#     ax.text(1, output_layer_y[0], 'Σ', ha='center', va='center', fontsize=18, fontweight='bold', color='white')
+#
+#     for i, y1 in enumerate(input_layer_y):
+#         for j, y2 in enumerate(hidden_layer_y):
+#             ax.plot([-0.8, -0.2], [y1, y2], color='black', alpha=0.7, linestyle='--')
+#
+#     for j, y2 in enumerate(hidden_layer_y):
+#         ax.plot([0.2, 0.8], [y2, output_layer_y[0]], color='black', alpha=0.7, linestyle='--')
+#
+#     ax.text(0, -3, 'Funkcja aktywacyjna: sigmoid(x) = 1 / (1 + exp(-x))',
+#             ha='center', va='center', fontsize=12, color='red')
+#     ax.text(0, -3.3, 'Każdy neuron ukryty: Σ(w * x) + b -> sigmoid',
+#             ha='center', va='center', fontsize=12, color='black')
+#     ax.text(0, -3.6, 'Neuron wyjściowy: Σ(w * hidden_output) + b -> sigmoid',
+#             ha='center', va='center', fontsize=12, color='black')
+#
+#     ax.axis('off')
+#     plt.title("Diagram sieci neuronowej: 1 input, 10 hidden neurons, 1 output (Sigmoida)")
+#     plt.show()
+#
+# draw_neural_network_v3(input_size=1, hidden_size=10, output_size=1)
